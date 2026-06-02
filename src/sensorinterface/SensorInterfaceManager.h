@@ -2,33 +2,25 @@
 
 #include <Wire.h>
 
-// Опережающие объявления типов в корневом пространстве имен SlimeVR
+#include "I2CWireSensorInterface.h"
+#include "I2CPCAInterface.h"
+
 namespace SlimeVR {
-    class DirectPinInterface;
-    class I2CWireSensorInterface;
-    class I2CPCASensorInterface;
-    class DirectSPIInterface;
-    class PinInterface;
 
-    class SensorInterfaceManager {
-    public:
-        SensorInterfaceManager();
-        ~SensorInterfaceManager();
+class SensorInterfaceManager {
+public:
+    SensorInterfaceManager();
+    ~SensorInterfaceManager();
 
-        SlimeVR::DirectPinInterface& directPinInterface() { return *m_directPin; }
-        SlimeVR::I2CWireSensorInterface& i2cWireInterface() { return *m_i2cWire; }
-        SlimeVR::I2CPCASensorInterface& pcaWireInterface() { return *m_pcaWire; }
-        SlimeVR::DirectSPIInterface& directSPIInterface() { return *m_spi; }
+    SlimeVR::I2CWireSensorInterface& i2cWireInterface() { return *m_i2cWire; }
+    SlimeVR::I2CPCASensorInterface& pcaWireInterface() { return *m_pcaWire; }
+    SlimeVR::I2CWireSensorInterface& i2cImpl() { return *m_i2cWire; }
 
-        auto& i2cImpl() { return *m_i2cWire; }
-        auto& spiImpl() { return *m_spi; }
+private:
+    SlimeVR::I2CWireSensorInterface* m_i2cWire;
+    SlimeVR::I2CPCASensorInterface* m_pcaWire;
+};
 
-    private:
-        SlimeVR::DirectPinInterface* m_directPin;
-        SlimeVR::I2CWireSensorInterface* m_i2cWire;
-        SlimeVR::I2CPCASensorInterface* m_pcaWire;
-        SlimeVR::DirectSPIInterface* m_spi;
-    };
 } // namespace SlimeVR
 
 namespace SlimeVR::Sensors {

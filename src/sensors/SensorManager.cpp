@@ -23,15 +23,12 @@
 
 #include "SensorManager.h"
 
+#include "GlobalVars.h"
 #include "SensorBuilder.h"
 
 namespace SlimeVR::Sensors {
 
 void SensorManager::setup() {
-	if (m_MCP.begin_I2C()) {
-		m_Logger.info("MCP initialized");
-	}
-
 	SensorBuilder sensorBuilder = SensorBuilder(this);
 	uint8_t activeSensorCount = sensorBuilder.buildAllSensors();
 
