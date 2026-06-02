@@ -56,7 +56,7 @@ RegisterInterface* SensorBuilder::getRegisterInterface(
 ) {
     if constexpr (std::is_base_of_v<PinInterface, std::remove_pointer_t<AccessInterface>>) {
         return interfaceManager->spiImpl().get(
-            static_cast<SlimeVR::DirectSPIInterface*>(interface),
+            reinterpret_cast<SlimeVR::DirectSPIInterface*>(interface),
             access
         );
     } else if constexpr (std::is_same_v<AccessInterface, bool>) {
