@@ -2,7 +2,7 @@
 
 #include "RegisterInterface.h"
 #include "DirectSPIInterface.h"
-#include "PinInterface.h"
+#include <PinInterface.h>
 #include <cstdint>
 
 namespace SlimeVR::Sensors {
