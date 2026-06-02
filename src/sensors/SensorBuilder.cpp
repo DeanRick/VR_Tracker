@@ -2,7 +2,7 @@
 
 // Подключаем всё тяжелое барахло здесь — в .cpp файле это абсолютно безопасно!
 #include "sensorinterface/SensorInterfaceManager.h"
-#include "sensorinterface/PinInterface.h"
+#include <PinInterface.h>
 #include "sensorinterface/DirectPinInterface.h"
 #include "sensorinterface/DirectSPIInterface.h"
 #include "sensorinterface/RegisterInterface.h"
