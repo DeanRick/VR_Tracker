@@ -1,14 +1,15 @@
 #include "DirectSPIInterface.h"
+#include <Arduino.h>
 #include <PinInterface.h>
 
 namespace SlimeVR {
 
-void DirectSPIInterface::beginTransaction(PinInterface* csPin) {
+void DirectSPIInterface::beginTransaction(::PinInterface* csPin) {
     m_spi.beginTransaction(SPISettings(m_clockFreq, MSBFIRST, SPI_MODE0));
     if (csPin) csPin->digitalWrite(LOW);
 }
 
-void DirectSPIInterface::endTransaction(PinInterface* csPin) {
+void DirectSPIInterface::endTransaction(::PinInterface* csPin) {
     if (csPin) csPin->digitalWrite(HIGH);
     m_spi.endTransaction();
 }

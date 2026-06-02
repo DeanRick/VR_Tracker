@@ -12,8 +12,8 @@ public:
     explicit DirectSPIInterface(SPIClass& spi = SPI, uint32_t clockFreq = 8000000)
         : m_spi(spi), m_clockFreq(clockFreq) {}
 
-    void beginTransaction(PinInterface* csPin);
-    void endTransaction(PinInterface* csPin);
+    void beginTransaction(::PinInterface* csPin);
+    void endTransaction(::PinInterface* csPin);
 
     uint8_t readReg(uint8_t reg);
     uint16_t readReg16(uint8_t reg);
