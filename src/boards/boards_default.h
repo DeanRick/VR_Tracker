@@ -1,0 +1,11 @@
+#include "defines_helpers.h"
+
+#undef MAX_SENSORS_COUNT
+#define MAX_SENSORS_COUNT 1
+
+#ifndef TRACKER_TYPE
+#define TRACKER_TYPE TrackerType::TRACKER_TYPE_SVR_ROTATION
+#endif
+
+#undef SENSOR_DESC_LIST
+#define SENSOR_DESC_LIST SENSOR_DESC_ENTRY(IMU_BMI160, PRIMARY_IMU_ADDRESS_ONE, IMU_ROTATION, &interfaceManager.i2cWireInterface(), PRIMARY_IMU_OPTIONAL, &pinManager.emptyImpl(), 0)
