@@ -31,6 +31,8 @@ namespace SlimeVR::Sensors {
 struct RegisterInterface {
 	static constexpr size_t MaxTransactionLength = I2C_BUFFER_LENGTH - 2;
 
+	virtual ~RegisterInterface() = default;
+
 	[[nodiscard]] virtual uint8_t readReg(uint8_t regAddr) const = 0;
 	[[nodiscard]] virtual uint16_t readReg16(uint8_t regAddr) const = 0;
 	virtual void writeReg(uint8_t regAddr, uint8_t value) const = 0;
