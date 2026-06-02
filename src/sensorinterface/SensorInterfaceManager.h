@@ -16,7 +16,7 @@ struct I2CImplFactory {
 };
 
 struct SPIImplFactory {
-    SlimeVR::Sensors::RegisterInterface* get(SlimeVR::DirectSPIInterface* spi, PinInterface* cs) {
+    SlimeVR::Sensors::RegisterInterface* get(SlimeVR::DirectSPIInterface* spi, ::PinInterface* cs) {
         return new SlimeVR::Sensors::SPIImpl(spi, cs);
     }
 };
