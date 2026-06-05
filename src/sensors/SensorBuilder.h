@@ -12,12 +12,14 @@
 #include "sensor.h"
 #include "consts.h"
 
-// Опережающие объявления — компилятору не нужно знать их размер здесь
+// PinInterface живёт в глобальном namespace (lib/bno080)
+#include <PinInterface.h>
+
+// Опережающие объявления
 namespace SlimeVR {
     class SensorInterfaceManager;
     class SensorInterface;
     class DirectSPIInterface;
-    class PinInterface;
 }
 
 namespace SlimeVR::Sensors {
@@ -44,7 +46,7 @@ private:
         float rotation;
         SensorInterface* sensorInterface;
         bool optional;
-        PinInterface* intPin;
+        ::PinInterface* intPin;
         int extraParam;
     };
 
@@ -98,7 +100,7 @@ public:
         float rotation,
         SensorInterface* sensorInterface,
         bool optional = false,
-        ::PinInterface* intPin = nullptr,
+        PinInterface* intPin = nullptr,
         int extraParam = 0
     );
 

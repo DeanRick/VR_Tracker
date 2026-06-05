@@ -153,7 +153,7 @@ bool SensorBuilder::sensorDescEntry(
     float rotation,
     SensorInterface* sensorInterface,
     bool optional,
-    ::PinInterface* intPin,
+    PinInterface* intPin,
     int extraParam
 ) {
     auto found =
