@@ -59,6 +59,11 @@ struct BMI160 {
 	static constexpr float TemperatureZROChange
 		= 2.0f;  // wow maybe BMI270 isn't that bad actually
 
+	// Temperature register: 0 LSB = 23°C, resolution = 1/512 °C/LSB
+	// Matches getDirectTemp() implementation below
+	static constexpr float TemperatureSensitivity = 512.0f;
+	static constexpr float TemperatureBias = 23.0f;
+
 	static constexpr VQFParams SensorVQFParams{};
 
 	RegisterInterface& m_RegisterInterface;
