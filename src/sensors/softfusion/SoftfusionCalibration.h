@@ -34,6 +34,7 @@
 #include "motionprocessing/RestDetection.h"
 #include "motionprocessing/types.h"
 #include "sensors/SensorFusion.h"
+#include "magneto1.4.h"
 
 namespace SlimeVR::Sensors {
 

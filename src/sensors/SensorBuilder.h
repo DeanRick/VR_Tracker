@@ -98,7 +98,7 @@ public:
         float rotation,
         SensorInterface* sensorInterface,
         bool optional = false,
-        PinInterface* intPin = nullptr,
+        ::PinInterface* intPin = nullptr,
         int extraParam = 0
     );
 
