@@ -63,16 +63,30 @@ void WiFiNetwork::setWiFiCredentials(const char* SSID, const char* pass) {
 IPAddress WiFiNetwork::getAddress() { return WiFi.localIP(); }
 
 void WiFiNetwork::setUp() {
-	wifiHandlerLogger.info("Setting up WiFi");
+	wifiHandlerLogger.info("=== WiFi setUp() start ===");
 	WiFi.persistent(true);
 	WiFi.mode(WIFI_STA);
 	WiFi.hostname("SlimeVR FBT Tracker");
+
+	String ssid = getSSID();
+	String pass = getPassword();
 	wifiHandlerLogger.info(
-		"Loaded credentials for SSID '%s' and pass length %d",
-		getSSID().c_str(),
-		getPassword().length()
+		"Saved credentials: SSID='%s' passLen=%d",
+		ssid.c_str(),
+		pass.length()
 	);
 
+#if defined(WIFI_CREDS_SSID) && defined(WIFI_CREDS_PASSWD)
+	wifiHandlerLogger.info(
+		"Hardcoded credentials: SSID='%s' passLen=%d",
+		WIFI_CREDS_SSID,
+		strlen(WIFI_CREDS_PASSWD)
+	);
+#else
+	wifiHandlerLogger.warn("No hardcoded WiFi credentials defined (WIFI_CREDS_SSID/PASSWD)!");
+#endif
+
+	wifiHandlerLogger.info("Calling trySavedCredentials()...");
 	trySavedCredentials();
 
 #if ESP8266
@@ -178,24 +192,26 @@ void WiFiNetwork::upkeep() {
 	}
 
 	switch (wifiState) {
-		case WiFiReconnectionStatus::NotSetup:  // Wasn't set up
+		case WiFiReconnectionStatus::NotSetup:
+			wifiHandlerLogger.warn("upkeep(): state=NotSetup, WiFi not started");
 			return;
-		case WiFiReconnectionStatus::SavedAttempt:  // Couldn't connect with
-													// first set of
-													// credentials
+		case WiFiReconnectionStatus::SavedAttempt:
+			wifiHandlerLogger.info("upkeep(): SavedAttempt timed out (status=%d), trying next...", (int)WiFi.status());
 			if (!trySavedCredentials()) {
 				tryHardcodedCredentials();
 			}
 			return;
-		case WiFiReconnectionStatus::HardcodeAttempt:  // Couldn't connect with
-													   // second set of credentials
+		case WiFiReconnectionStatus::HardcodeAttempt:
+			wifiHandlerLogger.info("upkeep(): HardcodeAttempt timed out (status=%d)", (int)WiFi.status());
 			if (!tryHardcodedCredentials()) {
+				wifiHandlerLogger.error("upkeep(): hardcoded creds also failed -> Failed");
 				wifiState = WiFiReconnectionStatus::Failed;
 			}
 			return;
-		case WiFiReconnectionStatus::ServerCredAttempt:  // Couldn't connect with
-														 // server-sent credentials.
+		case WiFiReconnectionStatus::ServerCredAttempt:
+			wifiHandlerLogger.info("upkeep(): ServerCredAttempt timed out (status=%d)", (int)WiFi.status());
 			if (!tryServerCredentials()) {
+				wifiHandlerLogger.error("upkeep(): server creds failed -> Failed");
 				wifiState = WiFiReconnectionStatus::Failed;
 			}
 			return;
@@ -276,9 +292,10 @@ void WiFiNetwork::showConnectionAttemptFailed(const char* type) const {
 }
 
 bool WiFiNetwork::trySavedCredentials() {
-	if (getSSID().length() == 0) {
-		wifiHandlerLogger.debug("Skipping saved credentials attempt on 0-length SSID..."
-		);
+	String ssid = getSSID();
+	wifiHandlerLogger.info("trySavedCredentials(): SSID='%s' len=%d", ssid.c_str(), ssid.length());
+	if (ssid.length() == 0) {
+		wifiHandlerLogger.warn("Saved SSID is empty -> skip to HardcodeAttempt");
 		wifiState = WiFiReconnectionStatus::HardcodeAttempt;
 		return false;
 	}
@@ -306,6 +323,7 @@ bool WiFiNetwork::trySavedCredentials() {
 }
 
 bool WiFiNetwork::tryHardcodedCredentials() {
+	wifiHandlerLogger.info("tryHardcodedCredentials()");
 #if defined(WIFI_CREDS_SSID) && defined(WIFI_CREDS_PASSWD)
 	if (wifiState == WiFiReconnectionStatus::HardcodeAttempt) {
 		showConnectionAttemptFailed("hardcoded");
@@ -356,6 +374,12 @@ bool WiFiNetwork::tryServerCredentials() {
 }
 
 bool WiFiNetwork::tryConnecting(bool phyModeG, const char* SSID, const char* pass) {
+	wifiHandlerLogger.info(
+		"tryConnecting(): SSID='%s' phyModeG=%d",
+		SSID ? SSID : "(saved)",
+		(int)phyModeG
+	);
+
 #if ESP8266
 	if (phyModeG) {
 		WiFi.setPhyMode(WIFI_PHY_MODE_11G);
@@ -370,14 +394,17 @@ bool WiFiNetwork::tryConnecting(bool phyModeG, const char* SSID, const char* pas
 	}
 #else
 	if (phyModeG) {
+		wifiHandlerLogger.debug("phyModeG requested on ESP32 — skipping (not supported)");
 		return false;
 	}
 #endif
 
 	setStaticIPIfDefined();
 	if (SSID == nullptr) {
+		wifiHandlerLogger.info("WiFi.begin() with saved credentials");
 		WiFi.begin();
 	} else {
+		wifiHandlerLogger.info("WiFi.begin(SSID='%s')", SSID);
 		WiFi.begin(SSID, pass);
 	}
 	wifiConnectionTimeout = millis();
