@@ -29,6 +29,28 @@
 #include "esp_wifi_types.h"
 #endif
 
+#if !ESP8266
+// Log the real disconnect reason from ESP-IDF — much more informative than WL_DISCONNECTED
+static void wifiDisconnectEventHandler(
+	arduino_event_id_t event,
+	arduino_event_info_t info
+) {
+	uint8_t reason = info.wifi_sta_disconnected.reason;
+	// Reason codes from esp_wifi_types.h: 1=unspecified, 2=auth_expire, 4=auth_leave,
+	// 15=4way_handshake_timeout (wrong password!), 200=beacon_timeout, 201=no_ap_found
+	Serial.printf(
+		"[DEBUG] [WiFiHandler] Disconnect event: reason=%d (%s)\n",
+		reason,
+		reason == 15 ? "WRONG_PASSWORD/4WAY_HANDSHAKE_TIMEOUT"
+		: reason == 201 ? "NO_AP_FOUND"
+		: reason == 200 ? "BEACON_TIMEOUT"
+		: reason == 2   ? "AUTH_EXPIRE"
+		: reason == 1   ? "UNSPECIFIED"
+		: "see esp_wifi_types.h"
+	);
+}
+#endif
+
 namespace SlimeVR {
 
 void WiFiNetwork::reportWifiProgress() {
@@ -67,6 +89,40 @@ void WiFiNetwork::setUp() {
 	WiFi.persistent(true);
 	WiFi.mode(WIFI_STA);
 	WiFi.hostname("SlimeVR FBT Tracker");
+#if !ESP8266
+	// Register disconnect event handler to log real reason code (e.g. wrong password = reason 15)
+	WiFi.onEvent(wifiDisconnectEventHandler, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+#endif
+
+	// Apply power saving BEFORE first WiFi.begin() so it takes effect immediately
+#if ESP8266
+#if POWERSAVING_MODE == POWER_SAVING_NONE
+	WiFi.setSleepMode(WIFI_NONE_SLEEP);
+#elif POWERSAVING_MODE == POWER_SAVING_MINIMUM
+	WiFi.setSleepMode(WIFI_MODEM_SLEEP);
+#elif POWERSAVING_MODE == POWER_SAVING_MODERATE
+	WiFi.setSleepMode(WIFI_MODEM_SLEEP, 10);
+#elif POWERSAVING_MODE == POWER_SAVING_MAXIMUM
+	WiFi.setSleepMode(WIFI_LIGHT_SLEEP, 10);
+#error "MAX POWER SAVING NOT WORKING YET, please disable!"
+#endif
+#else
+#if POWERSAVING_MODE == POWER_SAVING_NONE
+	esp_wifi_set_ps(WIFI_PS_NONE);
+#elif POWERSAVING_MODE == POWER_SAVING_MINIMUM
+	WiFi.setSleep(WIFI_PS_MIN_MODEM);
+#elif POWERSAVING_MODE == POWER_SAVING_MODERATE \
+	|| POWERSAVING_MODE == POWER_SAVING_MAXIMUM
+	wifi_config_t conf;
+	if (esp_wifi_get_config(WIFI_IF_STA, &conf) == ESP_OK) {
+		conf.sta.listen_interval = 10;
+		esp_wifi_set_config(WIFI_IF_STA, &conf);
+		WiFi.setSleep(WIFI_PS_MAX_MODEM);
+	} else {
+		wifiHandlerLogger.error("Unable to get WiFi config, power saving not enabled!");
+	}
+#endif
+#endif
 
 	String ssid = getSSID();
 	String pass = getPassword();
@@ -88,35 +144,6 @@ void WiFiNetwork::setUp() {
 
 	wifiHandlerLogger.info("Calling trySavedCredentials()...");
 	trySavedCredentials();
-
-#if ESP8266
-#if POWERSAVING_MODE == POWER_SAVING_NONE
-	WiFi.setSleepMode(WIFI_NONE_SLEEP);
-#elif POWERSAVING_MODE == POWER_SAVING_MINIMUM
-	WiFi.setSleepMode(WIFI_MODEM_SLEEP);
-#elif POWERSAVING_MODE == POWER_SAVING_MODERATE
-	WiFi.setSleepMode(WIFI_MODEM_SLEEP, 10);
-#elif POWERSAVING_MODE == POWER_SAVING_MAXIMUM
-	WiFi.setSleepMode(WIFI_LIGHT_SLEEP, 10);
-#error "MAX POWER SAVING NOT WORKING YET, please disable!"
-#endif
-#else
-#if POWERSAVING_MODE == POWER_SAVING_NONE
-	WiFi.setSleep(WIFI_PS_NONE);
-#elif POWERSAVING_MODE == POWER_SAVING_MINIMUM
-	WiFi.setSleep(WIFI_PS_MIN_MODEM);
-#elif POWERSAVING_MODE == POWER_SAVING_MODERATE \
-	|| POWERSAVING_MODE == POWER_SAVING_MAXIMUM
-	wifi_config_t conf;
-	if (esp_wifi_get_config(WIFI_IF_STA, &conf) == ESP_OK) {
-		conf.sta.listen_interval = 10;
-		esp_wifi_set_config(WIFI_IF_STA, &conf);
-		WiFi.setSleep(WIFI_PS_MAX_MODEM);
-	} else {
-		wifiHandlerLogger.error("Unable to get WiFi config, power saving not enabled!");
-	}
-#endif
-#endif
 }
 
 void WiFiNetwork::onConnected() {
@@ -394,8 +421,11 @@ bool WiFiNetwork::tryConnecting(bool phyModeG, const char* SSID, const char* pas
 	}
 #else
 	if (phyModeG) {
-		wifiHandlerLogger.debug("phyModeG requested on ESP32 — skipping (not supported)");
-		return false;
+		// ESP32 doesn't support manual PHY mode selection.
+		// Use this retry slot to attempt reconnection with a clean disconnect first.
+		wifiHandlerLogger.debug("phyModeG not supported on ESP32 — retrying with clean disconnect");
+		WiFi.disconnect(true);
+		delay(200);
 	}
 #endif
 
